@@ -172,7 +172,14 @@ npm run dev
 
 ## 🚀 배포된 사이트
 
-[배포된 사이트 링크는 Vercel에서 확인 가능]
+**사이트 링크**: `https://mnj510.github.io/remote-work-management`
+
+### 📋 배포 상태
+- ✅ GitHub 저장소 생성 완료
+- ✅ 코드 푸시 완료
+- ✅ GitHub Actions 워크플로우 설정 완료
+- ⏳ GitHub Pages 배포 진행 중 (약 2-3분 소요)
+- ⏳ Supabase 데이터베이스 설정 필요
 
 ## 📝 문제 해결
 
