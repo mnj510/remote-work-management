@@ -110,13 +110,7 @@ const ErrorMessage = styled.div`
   margin-top: 10px;
 `;
 
-const InfoText = styled.div`
-  text-align: center;
-  color: #666;
-  font-size: 0.9rem;
-  margin-top: 20px;
-  line-height: 1.5;
-`;
+
 
 const LoginPage = () => {
   const [loginType, setLoginType] = useState('employee');
