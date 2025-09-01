@@ -1,0 +1,19 @@
+{
+  "name": "remote-work-management",
+  "version": "1.0.0",
+  "description": "재택 근무 직원 관리 시스템",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["재택근무", "직원관리", "출퇴근관리"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
