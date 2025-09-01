@@ -19,7 +19,9 @@ jobs:
     
     - name: Install dependencies
       run: |
-        npm run install-all
+        npm install
+        cd server && npm install
+        cd ../client && npm install
     
     - name: Build client
       run: |
@@ -28,6 +30,7 @@ jobs:
       env:
         REACT_APP_SUPABASE_URL: https://wrzwkrvtamhtxdgqlxve.supabase.co
         REACT_APP_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyendrcnZ0YW1odHhkZ3FseHZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3NTAyMjYsImV4cCI6MjA3MjMyNjIyNn0.K5huAAIxR2KAuwiILnySm5N0WH1dXS2R9QzntZ2HnCM
+        CI: false
     
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
