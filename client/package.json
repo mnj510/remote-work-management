@@ -1,6 +1,7 @@
 {
   "name": "remote-work-management-client",
   "version": "1.0.0",
+  "homepage": "https://your-username.github.io/your-repo-name",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.56.1",

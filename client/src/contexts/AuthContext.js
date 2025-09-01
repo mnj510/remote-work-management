@@ -16,13 +16,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 로컬 스토리지에서 토큰 확인
-    const token = localStorage.getItem('token');
+    // 로컬 스토리지에서 사용자 데이터 확인
     const userData = localStorage.getItem('user');
     
-    if (token && userData) {
+    if (userData) {
       setUser(JSON.parse(userData));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     
     setLoading(false);

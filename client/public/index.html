@@ -10,6 +10,19 @@
       content="재택 근무 직원 관리 시스템"
     />
     <title>재택 근무 관리 시스템</title>
+    <script type="text/javascript">
+      // GitHub Pages에서 React Router가 작동하도록 리다이렉트
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
     <style>
       * {
         margin: 0;

@@ -106,16 +106,21 @@ npm run install-all
 npm run dev
 ```
 
-### 4. 배포 (Vercel)
+### 4. 배포 (GitHub Pages)
 
-1. [Vercel](https://vercel.com)에서 새 프로젝트 생성
-2. GitHub 저장소 연결
-3. 환경 변수 설정:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `JWT_SECRET`
-   - `REACT_APP_SUPABASE_URL`
-   - `REACT_APP_SUPABASE_ANON_KEY`
+1. GitHub에서 새 저장소 생성
+2. 로컬에서 다음 명령어 실행:
+   ```bash
+   git remote add origin https://github.com/your-username/your-repo-name.git
+   git branch -M main
+   git push -u origin main
+   ```
+3. `client/package.json`의 `homepage` 필드를 실제 저장소 URL로 수정:
+   ```json
+   "homepage": "https://your-username.github.io/your-repo-name"
+   ```
+4. GitHub 저장소 Settings > Pages에서 Source를 "GitHub Actions"로 설정
+5. GitHub Actions가 자동으로 빌드하고 배포합니다
 
 ## 🔐 로그인 정보
 
