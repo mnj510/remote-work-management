@@ -493,16 +493,28 @@ const WorkTimeTracker = () => {
                       {log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
                     </LogValue>
                   </LogItem>
-                  <LogItem>
-                    <LogLabel>근무 시간</LogLabel>
-                    <LogValue>
-                      {log.total_hours ? (
-                        log.total_hours < 0.01 ? 
-                        '1분 미만' : 
-                        `${Math.abs(log.total_hours).toFixed(2)}시간`
-                      ) : '-'}
-                    </LogValue>
-                  </LogItem>
+                                      <LogItem>
+                      <LogLabel>근무 시간</LogLabel>
+                      <LogValue>
+                        {log.total_hours ? (
+                          (() => {
+                            const hours = Math.abs(log.total_hours);
+                            if (hours < 0.01) return '1분 미만';
+                            const totalMinutes = Math.round(hours * 60);
+                            const displayHours = Math.floor(totalMinutes / 60);
+                            const displayMinutes = totalMinutes % 60;
+                            
+                            if (displayHours === 0) {
+                              return `${displayMinutes}분`;
+                            } else if (displayMinutes === 0) {
+                              return `${displayHours}시간`;
+                            } else {
+                              return `${displayHours}시간 ${displayMinutes}분`;
+                            }
+                          })()
+                        ) : '-'}
+                      </LogValue>
+                    </LogItem>
                 </LogGrid>
               </div>
             ))}
