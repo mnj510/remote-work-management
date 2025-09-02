@@ -3,13 +3,13 @@
 
 export const telegramConfig = {
   // 텔레그램 봇 토큰 (BotFather에서 받은 토큰)
-  botToken: 'your_bot_token_here',
+  botToken: 'your_bot_token_here', // 여기에 실제 봇 토큰을 입력하세요
   
   // 관리자 채팅 ID (봇이 메시지를 보낼 채팅방 ID)
-  chatId: 'your_chat_id_here',
+  chatId: '5742933746', // 사용자가 제공한 채널 ID
   
   // 봇 사용 여부
-  enabled: false
+  enabled: false // 봇 토큰 설정 후 true로 변경
 };
 
 // 텔레그램 봇으로 메시지 전송
