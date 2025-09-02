@@ -464,52 +464,49 @@ const WorkTimeTracker = () => {
           <LogTitle>
             오늘의 근무 기록 ({allTodayLogs.length}회)
           </LogTitle>
-          
-
-            <div>
-              {allTodayLogs.map((log, index) => (
-                <div key={log.id} style={{ 
-                  border: '1px solid #e0e0e0', 
-                  borderRadius: '10px', 
-                  padding: '1rem', 
-                  marginBottom: '1rem',
-                  background: index === 0 ? '#f8f9fa' : 'white'
+          <div>
+            {allTodayLogs.map((log, index) => (
+              <div key={log.id} style={{ 
+                border: '1px solid #e0e0e0', 
+                borderRadius: '10px', 
+                padding: '1rem', 
+                marginBottom: '1rem',
+                background: index === 0 ? '#f8f9fa' : 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold',
+                  marginBottom: '0.5rem',
+                  color: index === 0 ? '#667eea' : '#333'
                 }}>
-                  <div style={{ 
-                    fontWeight: 'bold',
-                    marginBottom: '0.5rem',
-                    color: index === 0 ? '#667eea' : '#333'
-                  }}>
-                    {allTodayLogs.length - index}차 근무
-                  </div>
-                  <LogGrid>
-                    <LogItem>
-                      <LogLabel>출근 시간</LogLabel>
-                      <LogValue>
-                        {log.start_time ? moment(log.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
-                      </LogValue>
-                    </LogItem>
-                    <LogItem>
-                      <LogLabel>퇴근 시간</LogLabel>
-                      <LogValue>
-                        {log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
-                      </LogValue>
-                    </LogItem>
-                    <LogItem>
-                      <LogLabel>근무 시간</LogLabel>
-                      <LogValue>
-                        {log.total_hours ? (
-                          log.total_hours < 0.01 ? 
-                          '1분 미만' : 
-                          `${Math.abs(log.total_hours).toFixed(2)}시간`
-                        ) : '-'}
-                      </LogValue>
-                    </LogItem>
-                  </LogGrid>
+                  {allTodayLogs.length - index}차 근무
                 </div>
-              ))}
-            </div>
-          )}
+                <LogGrid>
+                  <LogItem>
+                    <LogLabel>출근 시간</LogLabel>
+                    <LogValue>
+                      {log.start_time ? moment(log.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                    </LogValue>
+                  </LogItem>
+                  <LogItem>
+                    <LogLabel>퇴근 시간</LogLabel>
+                    <LogValue>
+                      {log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                    </LogValue>
+                  </LogItem>
+                  <LogItem>
+                    <LogLabel>근무 시간</LogLabel>
+                    <LogValue>
+                      {log.total_hours ? (
+                        log.total_hours < 0.01 ? 
+                        '1분 미만' : 
+                        `${Math.abs(log.total_hours).toFixed(2)}시간`
+                      ) : '-'}
+                    </LogValue>
+                  </LogItem>
+                </LogGrid>
+              </div>
+            ))}
+          </div>
         </WorkLogCard>
       )}
     </Container>
