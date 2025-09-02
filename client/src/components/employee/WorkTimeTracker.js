@@ -232,8 +232,10 @@ const WorkTimeTracker = () => {
 
     try {
       const today = moment().format('YYYY-MM-DD');
-      const now = moment().format('YYYY-MM-DD HH:mm:ss');
+      const now = moment().toISOString(); // ISO 형식으로 저장 (UTC)
       const userCode = user?.employee?.code;
+
+      console.log('출근 기록:', { today, now, userCode });
 
       // 오늘 기록이 있는지 확인
       const { data: existingLog } = await supabase
@@ -251,6 +253,7 @@ const WorkTimeTracker = () => {
           .eq('id', existingLog.id);
 
         if (error) {
+          console.error('출근 기록 업데이트 오류:', error);
           setMessage('출근 기록 업데이트에 실패했습니다.');
           return;
         }
@@ -265,6 +268,7 @@ const WorkTimeTracker = () => {
           }]);
 
         if (error) {
+          console.error('출근 기록 생성 오류:', error);
           setMessage('출근 기록에 실패했습니다.');
           return;
         }
@@ -273,6 +277,7 @@ const WorkTimeTracker = () => {
       setMessage('출근이 기록되었습니다.');
       fetchTodayLog();
     } catch (error) {
+      console.error('출근 기록 오류:', error);
       setMessage('출근 기록에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -285,8 +290,10 @@ const WorkTimeTracker = () => {
 
     try {
       const today = moment().format('YYYY-MM-DD');
-      const now = moment().format('YYYY-MM-DD HH:mm:ss');
+      const now = moment().toISOString(); // ISO 형식으로 저장 (UTC)
       const userCode = user?.employee?.code;
+
+      console.log('퇴근 기록:', { today, now, userCode });
 
       // 오늘 출근 기록 찾기
       const { data: workLog, error: findError } = await supabase
@@ -301,10 +308,18 @@ const WorkTimeTracker = () => {
         return;
       }
 
+      console.log('기존 근무 기록:', workLog);
+
       // 근무 시간 계산 (정확한 계산)
       const startTime = moment(workLog.start_time);
       const endTime = moment(now);
       const totalHours = endTime.diff(startTime, 'hours', true);
+
+      console.log('시간 계산:', {
+        startTime: startTime.format('YYYY-MM-DD HH:mm:ss'),
+        endTime: endTime.format('YYYY-MM-DD HH:mm:ss'),
+        totalHours
+      });
 
       // 퇴근 기록 업데이트 (기존 퇴근 시간이 있어도 덮어쓰기)
       const { error: updateError } = await supabase
@@ -316,6 +331,7 @@ const WorkTimeTracker = () => {
         .eq('id', workLog.id);
 
       if (updateError) {
+        console.error('퇴근 기록 업데이트 오류:', updateError);
         setMessage('퇴근 기록에 실패했습니다.');
         return;
       }
@@ -323,6 +339,7 @@ const WorkTimeTracker = () => {
       setMessage('퇴근이 기록되었습니다.');
       fetchTodayLog();
     } catch (error) {
+      console.error('퇴근 기록 오류:', error);
       setMessage('퇴근 기록에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -332,8 +349,8 @@ const WorkTimeTracker = () => {
   const handleEditWorkLog = () => {
     if (todayLog) {
       setEditForm({
-        start_time: todayLog.start_time ? moment(todayLog.start_time).format('YYYY-MM-DDTHH:mm') : '',
-        end_time: todayLog.end_time ? moment(todayLog.end_time).format('YYYY-MM-DDTHH:mm') : ''
+        start_time: todayLog.start_time ? moment(todayLog.start_time).local().format('YYYY-MM-DDTHH:mm') : '',
+        end_time: todayLog.end_time ? moment(todayLog.end_time).local().format('YYYY-MM-DDTHH:mm') : ''
       });
       setIsEditing(true);
     }
@@ -347,9 +364,9 @@ const WorkTimeTracker = () => {
       const userCode = user?.employee?.code;
       const today = moment().format('YYYY-MM-DD');
       
-      // 시간 형식 변환
-      const startTime = editForm.start_time ? moment(editForm.start_time).format('YYYY-MM-DD HH:mm:ss') : null;
-      const endTime = editForm.end_time ? moment(editForm.end_time).format('YYYY-MM-DD HH:mm:ss') : null;
+      // 시간 형식 변환 (로컬 시간을 UTC로 변환)
+      const startTime = editForm.start_time ? moment(editForm.start_time).toISOString() : null;
+      const endTime = editForm.end_time ? moment(editForm.end_time).toISOString() : null;
       
       // 근무 시간 계산
       let totalHours = null;
@@ -561,19 +578,19 @@ const WorkTimeTracker = () => {
               <LogItem>
                 <LogLabel>출근 시간</LogLabel>
                 <LogValue>
-                  {todayLog.start_time ? moment(todayLog.start_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                  {todayLog.start_time ? moment(todayLog.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
                 </LogValue>
               </LogItem>
               <LogItem>
                 <LogLabel>퇴근 시간</LogLabel>
                 <LogValue>
-                  {todayLog.end_time ? moment(todayLog.end_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                  {todayLog.end_time ? moment(todayLog.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
                 </LogValue>
               </LogItem>
               <LogItem>
                 <LogLabel>총 근무 시간</LogLabel>
                 <LogValue>
-                  {todayLog.total_hours ? `${todayLog.total_hours.toFixed(2)}시간` : '-'}
+                  {todayLog.total_hours ? `${Math.abs(todayLog.total_hours).toFixed(2)}시간` : '-'}
                 </LogValue>
               </LogItem>
             </LogGrid>
