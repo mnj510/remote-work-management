@@ -12,11 +12,13 @@ const AppContainer = styled.div`
 `;
 
 const AppContent = () => {
+  console.log('AppContent: Starting...');
+  
   const { user, loading } = useAuth();
-
-  console.log('AppContent rendered:', { user, loading });
+  console.log('AppContent: Auth state:', { user, loading });
 
   if (loading) {
+    console.log('AppContent: Showing loading...');
     return (
       <AppContainer>
         <div style={{ 
@@ -33,6 +35,7 @@ const AppContent = () => {
     );
   }
 
+  console.log('AppContent: Rendering routes...');
   return (
     <AppContainer>
       <Routes>
@@ -58,11 +61,30 @@ const AppContent = () => {
 };
 
 function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  console.log('App: Starting...');
+  
+  try {
+    return (
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    );
+  } catch (error) {
+    console.error('App: Error:', error);
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        color: 'white',
+        fontSize: '1.2rem',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        앱 초기화 오류: {error.message}
+      </div>
+    );
+  }
 }
 
 export default App;
