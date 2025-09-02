@@ -16,14 +16,19 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthContext: Initializing...');
     // 로컬 스토리지에서 사용자 데이터 확인
     const userData = localStorage.getItem('user');
     
     if (userData) {
+      console.log('AuthContext: Found user data:', userData);
       setUser(JSON.parse(userData));
+    } else {
+      console.log('AuthContext: No user data found');
     }
     
     setLoading(false);
+    console.log('AuthContext: Initialization complete');
   }, []);
 
   const login = useCallback(async (credentials, type) => {

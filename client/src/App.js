@@ -14,6 +14,8 @@ const AppContainer = styled.div`
 const AppContent = () => {
   const { user, loading } = useAuth();
 
+  console.log('AppContent rendered:', { user, loading });
+
   if (loading) {
     return (
       <AppContainer>
