@@ -113,6 +113,8 @@ const ErrorMessage = styled.div`
 
 
 const LoginPage = () => {
+  console.log('LoginPage: Component rendered');
+  
   const [loginType, setLoginType] = useState('employee');
   const [credentials, setCredentials] = useState({
     username: '',

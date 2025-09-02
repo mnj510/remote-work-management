@@ -36,20 +36,43 @@ const AppContent = () => {
   }
 
   console.log('AppContent: Rendering routes...');
+  
+  // 현재 경로 확인
+  const currentPath = window.location.pathname;
+  console.log('AppContent: Current path:', currentPath);
+  
   return (
     <AppContainer>
       <Routes>
         <Route 
           path="/login" 
-          element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace /> : <LoginPage />} 
+          element={
+            user ? (
+              <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace />
+            ) : (
+              <LoginPage />
+            )
+          } 
         />
         <Route 
           path="/admin/*" 
-          element={user && user.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" replace />} 
+          element={
+            user && user.role === 'admin' ? (
+              <AdminDashboard />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
         />
         <Route 
           path="/employee/*" 
-          element={user && user.role === 'employee' ? <EmployeeDashboard /> : <Navigate to="/login" replace />} 
+          element={
+            user && user.role === 'employee' ? (
+              <EmployeeDashboard />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
         />
         <Route 
           path="/" 
