@@ -359,10 +359,14 @@ const WorkTimeManagement = () => {
             {workLogs.map((log) => (
               <tr key={log.id}>
                 <Td>{moment(log.date).format('YYYY-MM-DD (ddd)')}</Td>
-                <TimeCell>{log.start_time || '-'}</TimeCell>
-                <TimeCell>{log.end_time || '-'}</TimeCell>
+                <TimeCell>
+                  {log.start_time ? moment(log.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                </TimeCell>
+                <TimeCell>
+                  {log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                </TimeCell>
                 <HoursCell>
-                  {log.total_hours ? `${log.total_hours.toFixed(2)}h` : '-'}
+                  {log.total_hours ? `${Math.abs(log.total_hours).toFixed(2)}h` : '-'}
                 </HoursCell>
                 <Td>{getStatusBadge(log)}</Td>
               </tr>

@@ -175,6 +175,7 @@ const WorkTimeTracker = () => {
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todayLog, setTodayLog] = useState(null);
+  const [allTodayLogs, setAllTodayLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -201,19 +202,23 @@ const WorkTimeTracker = () => {
         .select('*')
         .eq('employee_code', userCode)
         .eq('date', today)
-        .single();
+        .order('start_time', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') { // PGRST116는 데이터가 없을 때
+      if (error) {
         console.error('오늘 기록 조회 실패:', error);
         return;
       }
 
-      if (logs) {
+      if (logs && logs.length > 0) {
         console.log('오늘 기록 발견:', logs);
-        setTodayLog(logs);
+        // 가장 최근 기록을 todayLog로 설정
+        setTodayLog(logs[0]);
+        // 모든 기록을 별도로 저장 (나중에 표시용)
+        setAllTodayLogs(logs);
       } else {
         console.log('오늘 기록 없음 - 새로운 날짜');
         setTodayLog(null);
+        setAllTodayLogs([]);
       }
     } catch (error) {
       console.error('오늘 기록 조회 실패:', error);
@@ -243,41 +248,19 @@ const WorkTimeTracker = () => {
 
       console.log('출근 기록:', { today, now, userCode });
 
-      // 오늘 기록이 있는지 확인
-      const { data: existingLog } = await supabase
+      // 항상 새로운 출근 기록 생성 (같은 날짜에 여러 번 출근 가능)
+      const { error } = await supabase
         .from('work_logs')
-        .select('*')
-        .eq('employee_code', userCode)
-        .eq('date', today)
-        .single();
+        .insert([{
+          employee_code: userCode,
+          date: today,
+          start_time: now
+        }]);
 
-      if (existingLog) {
-        // 기존 기록이 있으면 출근 시간만 업데이트
-        const { error } = await supabase
-          .from('work_logs')
-          .update({ start_time: now })
-          .eq('id', existingLog.id);
-
-        if (error) {
-          console.error('출근 기록 업데이트 오류:', error);
-          setMessage('출근 기록 업데이트에 실패했습니다.');
-          return;
-        }
-      } else {
-        // 새로운 출근 기록 생성
-        const { error } = await supabase
-          .from('work_logs')
-          .insert([{
-            employee_code: userCode,
-            date: today,
-            start_time: now
-          }]);
-
-        if (error) {
-          console.error('출근 기록 생성 오류:', error);
-          setMessage('출근 기록에 실패했습니다.');
-          return;
-        }
+      if (error) {
+        console.error('출근 기록 생성 오류:', error);
+        setMessage('출근 기록에 실패했습니다.');
+        return;
       }
 
       setMessage('출근이 기록되었습니다.');
@@ -301,19 +284,22 @@ const WorkTimeTracker = () => {
 
       console.log('퇴근 기록:', { today, now, userCode });
 
-      // 오늘 출근 기록 찾기
-      const { data: workLog, error: findError } = await supabase
+      // 오늘 가장 최근 출근 기록 찾기 (퇴근 기록이 없는 것)
+      const { data: workLogs, error: findError } = await supabase
         .from('work_logs')
         .select('*')
         .eq('employee_code', userCode)
         .eq('date', today)
-        .single();
+        .is('end_time', null)
+        .order('start_time', { ascending: false })
+        .limit(1);
 
-      if (findError || !workLog) {
+      if (findError || !workLogs || workLogs.length === 0) {
         setMessage('출근 기록을 찾을 수 없습니다.');
         return;
       }
 
+      const workLog = workLogs[0];
       console.log('기존 근무 기록:', workLog);
 
       // 근무 시간 계산 (정확한 계산)
@@ -329,7 +315,7 @@ const WorkTimeTracker = () => {
         totalHours
       });
 
-      // 퇴근 기록 업데이트 (기존 퇴근 시간이 있어도 덮어쓰기)
+      // 퇴근 기록 업데이트
       const { error: updateError } = await supabase
         .from('work_logs')
         .update({
@@ -506,10 +492,10 @@ const WorkTimeTracker = () => {
         <StatusText>{statusInfo.text}</StatusText>
       </StatusCard>
 
-      {todayLog && (
+      {allTodayLogs.length > 0 && (
         <WorkLogCard>
           <LogTitle>
-            오늘의 근무 기록
+            오늘의 근무 기록 ({allTodayLogs.length}회)
             <Button
               onClick={handleEditWorkLog}
               disabled={loading}
@@ -594,31 +580,49 @@ const WorkTimeTracker = () => {
               </div>
             </div>
           ) : (
-            <LogGrid>
-              <LogItem>
-                <LogLabel>출근 시간</LogLabel>
-                <LogValue>
-                  {todayLog.start_time ? moment(todayLog.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
-                </LogValue>
-              </LogItem>
-              <LogItem>
-                <LogLabel>퇴근 시간</LogLabel>
-                <LogValue>
-                  {todayLog.end_time ? moment(todayLog.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
-                </LogValue>
-              </LogItem>
-              <LogItem>
-                <LogLabel>총 근무 시간</LogLabel>
-                <LogValue>
-                  {(() => {
-                    const currentHours = getCurrentWorkHours();
-                    if (currentHours === null) return '-';
-                    if (currentHours < 0.01) return '1분 미만';
-                    return `${Math.abs(currentHours).toFixed(2)}시간`;
-                  })()}
-                </LogValue>
-              </LogItem>
-            </LogGrid>
+            <div>
+              {allTodayLogs.map((log, index) => (
+                <div key={log.id} style={{ 
+                  border: '1px solid #e0e0e0', 
+                  borderRadius: '10px', 
+                  padding: '1rem', 
+                  marginBottom: '1rem',
+                  background: index === 0 ? '#f8f9fa' : 'white'
+                }}>
+                  <div style={{ 
+                    fontWeight: 'bold', 
+                    marginBottom: '0.5rem',
+                    color: index === 0 ? '#667eea' : '#333'
+                  }}>
+                    {index + 1}차 근무
+                  </div>
+                  <LogGrid>
+                    <LogItem>
+                      <LogLabel>출근 시간</LogLabel>
+                      <LogValue>
+                        {log.start_time ? moment(log.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                      </LogValue>
+                    </LogItem>
+                    <LogItem>
+                      <LogLabel>퇴근 시간</LogLabel>
+                      <LogValue>
+                        {log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                      </LogValue>
+                    </LogItem>
+                    <LogItem>
+                      <LogLabel>근무 시간</LogLabel>
+                      <LogValue>
+                        {log.total_hours ? (
+                          log.total_hours < 0.01 ? 
+                          '1분 미만' : 
+                          `${Math.abs(log.total_hours).toFixed(2)}시간`
+                        ) : '-'}
+                      </LogValue>
+                    </LogItem>
+                  </LogGrid>
+                </div>
+              ))}
+            </div>
           )}
         </WorkLogCard>
       )}
