@@ -594,7 +594,7 @@ const WorkTimeTracker = () => {
                     marginBottom: '0.5rem',
                     color: index === 0 ? '#667eea' : '#333'
                   }}>
-                    {index + 1}차 근무
+                    {allTodayLogs.length - index}차 근무
                   </div>
                   <LogGrid>
                     <LogItem>

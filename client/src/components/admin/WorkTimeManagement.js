@@ -186,6 +186,11 @@ const WorkTimeManagement = () => {
   const [workLogs, setWorkLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [editingLog, setEditingLog] = useState(null);
+  const [editForm, setEditForm] = useState({
+    start_time: '',
+    end_time: ''
+  });
 
   useEffect(() => {
     fetchEmployees();
@@ -266,6 +271,94 @@ const WorkTimeManagement = () => {
       completedDays,
       totalHours: Math.round(totalHours * 100) / 100
     };
+  };
+
+  const handleEditLog = (log) => {
+    setEditingLog(log);
+    setEditForm({
+      start_time: log.start_time ? moment(log.start_time).local().format('YYYY-MM-DDTHH:mm') : '',
+      end_time: log.end_time ? moment(log.end_time).local().format('YYYY-MM-DDTHH:mm') : ''
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingLog) return;
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      // 시간 형식 변환 (로컬 시간을 UTC로 변환)
+      const startTime = editForm.start_time ? moment(editForm.start_time).toISOString() : null;
+      const endTime = editForm.end_time ? moment(editForm.end_time).toISOString() : null;
+      
+      // 근무 시간 계산
+      let totalHours = null;
+      if (startTime && endTime) {
+        const start = moment(startTime);
+        const end = moment(endTime);
+        const totalMinutes = end.diff(start, 'minutes', true);
+        totalHours = totalMinutes / 60;
+      }
+
+      const updateData = {
+        start_time: startTime,
+        end_time: endTime,
+        total_hours: totalHours
+      };
+
+      const { error } = await supabase
+        .from('work_logs')
+        .update(updateData)
+        .eq('id', editingLog.id);
+
+      if (error) {
+        setMessage('근무 기록 수정에 실패했습니다.');
+        return;
+      }
+
+      setMessage('근무 기록이 수정되었습니다.');
+      setEditingLog(null);
+      setEditForm({ start_time: '', end_time: '' });
+      fetchWorkLogs();
+    } catch (error) {
+      setMessage('근무 기록 수정에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLog(null);
+    setEditForm({ start_time: '', end_time: '' });
+  };
+
+  const handleDeleteLog = async (logId) => {
+    if (!window.confirm('정말로 이 근무 기록을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const { error } = await supabase
+        .from('work_logs')
+        .delete()
+        .eq('id', logId);
+
+      if (error) {
+        setMessage('근무 기록 삭제에 실패했습니다.');
+        return;
+      }
+
+      setMessage('근무 기록이 삭제되었습니다.');
+      fetchWorkLogs();
+    } catch (error) {
+      setMessage('근무 기록 삭제에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const summary = calculateSummary();
@@ -353,6 +446,7 @@ const WorkTimeManagement = () => {
               <Th>퇴근 시간</Th>
               <Th>근무 시간</Th>
               <Th>상태</Th>
+              <Th>관리</Th>
             </tr>
           </thead>
           <tbody>
@@ -360,20 +454,119 @@ const WorkTimeManagement = () => {
               <tr key={log.id}>
                 <Td>{moment(log.date).format('YYYY-MM-DD (ddd)')}</Td>
                 <TimeCell>
-                  {log.start_time ? moment(log.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                  {editingLog?.id === log.id ? (
+                    <input
+                      type="datetime-local"
+                      value={editForm.start_time}
+                      onChange={(e) => setEditForm({...editForm, start_time: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  ) : (
+                    log.start_time ? moment(log.start_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'
+                  )}
                 </TimeCell>
                 <TimeCell>
-                  {log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'}
+                  {editingLog?.id === log.id ? (
+                    <input
+                      type="datetime-local"
+                      value={editForm.end_time}
+                      onChange={(e) => setEditForm({...editForm, end_time: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  ) : (
+                    log.end_time ? moment(log.end_time).local().format('YYYY-MM-DD HH:mm:ss') : '-'
+                  )}
                 </TimeCell>
                 <HoursCell>
                   {log.total_hours ? `${Math.abs(log.total_hours).toFixed(2)}h` : '-'}
                 </HoursCell>
                 <Td>{getStatusBadge(log)}</Td>
+                <Td>
+                  {editingLog?.id === log.id ? (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={loading}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#27ae60',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        저장
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={loading}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#95a5a6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        취소
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => handleEditLog(log)}
+                        disabled={loading}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLog(log.id)}
+                        disabled={loading}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#e74c3c',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  )}
+                </Td>
               </tr>
             ))}
             {workLogs.length === 0 && (
               <tr>
-                <Td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                <Td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
                   {loading ? '조회 중...' : '데이터가 없습니다.'}
                 </Td>
               </tr>
