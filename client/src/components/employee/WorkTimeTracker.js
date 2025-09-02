@@ -3,8 +3,7 @@ import styled from 'styled-components';
 import { supabase } from '../../config/supabase';
 import moment from 'moment';
 import { useAuth } from '../../contexts/AuthContext';
-import emailjs from '@emailjs/browser';
-import { emailConfig, initEmailJS } from '../../config/email';
+import { sendTelegramMessage } from '../../config/telegram';
 
 const Container = styled.div`
   max-width: 800px;
@@ -235,31 +234,25 @@ const WorkTimeTracker = () => {
     return () => clearInterval(timer);
   }, [fetchTodayLog]);
 
-  const sendEmailNotification = async (employeeName, employeeCode, startTime) => {
+  const sendTelegramNotification = async (employeeName, employeeCode, startTime, action) => {
     try {
-      // EmailJS 초기화
-      initEmailJS();
+      const message = `
+🚨 <b>재택근무 알림</b>
 
-      const templateParams = {
-        to_email: emailConfig.adminEmail,
-        to_name: emailConfig.adminName,
-        employee_name: employeeName,
-        employee_code: employeeCode,
-        start_time: moment(startTime).local().format('YYYY-MM-DD HH:mm:ss'),
-        start_date: moment(startTime).local().format('YYYY년 MM월 DD일'),
-        message: `${employeeName} 직원이 ${moment(startTime).local().format('HH:mm')}에 출근했습니다.`
-      };
+👤 <b>직원명:</b> ${employeeName}
+🔢 <b>직원코드:</b> ${employeeCode}
+⏰ <b>시간:</b> ${moment(startTime).local().format('YYYY-MM-DD HH:mm:ss')}
+📅 <b>날짜:</b> ${moment(startTime).local().format('YYYY년 MM월 DD일')}
+🎯 <b>행동:</b> ${action}
 
-      const result = await emailjs.send(
-        emailConfig.serviceId, 
-        emailConfig.templateId, 
-        templateParams, 
-        emailConfig.publicKey
-      );
-      console.log('이메일 전송 성공:', result);
+재택근무관리 시스템에서 자동으로 발송된 메시지입니다.
+      `.trim();
+
+      await sendTelegramMessage(message);
+      console.log('텔레그램 메시지 전송 성공');
     } catch (error) {
-      console.error('이메일 전송 실패:', error);
-      // 이메일 전송 실패는 출근 기록에 영향을 주지 않음
+      console.error('텔레그램 메시지 전송 실패:', error);
+      // 텔레그램 전송 실패는 출근 기록에 영향을 주지 않음
     }
   };
 
@@ -290,8 +283,8 @@ const WorkTimeTracker = () => {
         return;
       }
 
-      // 출근 기록 성공 후 이메일 알림 전송
-      await sendEmailNotification(employeeName, userCode, now);
+      // 출근 기록 성공 후 텔레그램 알림 전송
+      await sendTelegramNotification(employeeName, userCode, now, '출근');
 
       setMessage('출근이 기록되었습니다.');
       fetchTodayLog();
@@ -311,8 +304,9 @@ const WorkTimeTracker = () => {
       const today = moment().format('YYYY-MM-DD');
       const now = moment().toISOString(); // ISO 형식으로 저장 (UTC)
       const userCode = user?.employee?.code;
+      const employeeName = user?.employee?.name || '알 수 없음';
 
-      console.log('퇴근 기록:', { today, now, userCode });
+      console.log('퇴근 기록:', { today, now, userCode, employeeName });
 
       // 오늘 가장 최근 출근 기록 찾기 (퇴근 기록이 없는 것)
       const { data: workLogs, error: findError } = await supabase
@@ -359,6 +353,9 @@ const WorkTimeTracker = () => {
         setMessage('퇴근 기록에 실패했습니다.');
         return;
       }
+
+      // 퇴근 기록 성공 후 텔레그램 알림 전송
+      await sendTelegramNotification(employeeName, userCode, now, '퇴근');
 
       setMessage('퇴근이 기록되었습니다.');
       fetchTodayLog();
