@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import { supabase } from '../../config/supabase';
 import moment from 'moment';
 import { useAuth } from '../../contexts/AuthContext';
+import emailjs from '@emailjs/browser';
+import { emailConfig, initEmailJS } from '../../config/email';
 
 const Container = styled.div`
   max-width: 800px;
@@ -233,6 +235,34 @@ const WorkTimeTracker = () => {
     return () => clearInterval(timer);
   }, [fetchTodayLog]);
 
+  const sendEmailNotification = async (employeeName, employeeCode, startTime) => {
+    try {
+      // EmailJS 초기화
+      initEmailJS();
+
+      const templateParams = {
+        to_email: emailConfig.adminEmail,
+        to_name: emailConfig.adminName,
+        employee_name: employeeName,
+        employee_code: employeeCode,
+        start_time: moment(startTime).local().format('YYYY-MM-DD HH:mm:ss'),
+        start_date: moment(startTime).local().format('YYYY년 MM월 DD일'),
+        message: `${employeeName} 직원이 ${moment(startTime).local().format('HH:mm')}에 출근했습니다.`
+      };
+
+      const result = await emailjs.send(
+        emailConfig.serviceId, 
+        emailConfig.templateId, 
+        templateParams, 
+        emailConfig.publicKey
+      );
+      console.log('이메일 전송 성공:', result);
+    } catch (error) {
+      console.error('이메일 전송 실패:', error);
+      // 이메일 전송 실패는 출근 기록에 영향을 주지 않음
+    }
+  };
+
   const handleStartWork = async () => {
     setLoading(true);
     setMessage('');
@@ -241,8 +271,9 @@ const WorkTimeTracker = () => {
       const today = moment().format('YYYY-MM-DD');
       const now = moment().toISOString(); // ISO 형식으로 저장 (UTC)
       const userCode = user?.employee?.code;
+      const employeeName = user?.employee?.name || '알 수 없음';
 
-      console.log('출근 기록:', { today, now, userCode });
+      console.log('출근 기록:', { today, now, userCode, employeeName });
 
       // 항상 새로운 출근 기록 생성 (같은 날짜에 여러 번 출근 가능)
       const { error } = await supabase
@@ -258,6 +289,9 @@ const WorkTimeTracker = () => {
         setMessage('출근 기록에 실패했습니다.');
         return;
       }
+
+      // 출근 기록 성공 후 이메일 알림 전송
+      await sendEmailNotification(employeeName, userCode, now);
 
       setMessage('출근이 기록되었습니다.');
       fetchTodayLog();
