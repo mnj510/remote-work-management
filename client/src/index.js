@@ -18,7 +18,7 @@ try {
   
   root.render(
     <React.StrictMode>
-      <BrowserRouter>
+      <BrowserRouter basename="/remote-work-management">
         <App />
       </BrowserRouter>
     </React.StrictMode>

@@ -28,6 +28,12 @@ const AppContent = () => {
       console.log('AppContent: Redirecting to:', newPath);
       window.history.replaceState(null, null, newPath);
     }
+    
+    // 현재 경로가 /remote-work-management/인 경우 /login으로 리다이렉트
+    if (path === '/remote-work-management/' || path === '/remote-work-management') {
+      console.log('AppContent: Redirecting from base path to /login');
+      window.history.replaceState(null, null, '/login');
+    }
   }, []);
 
   if (loading) {
