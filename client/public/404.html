@@ -5,18 +5,28 @@
     <title>재택 근무 관리 시스템</title>
     <script type="text/javascript">
       // GitHub Pages에서 React Router가 작동하도록 리다이렉트
-      var pathSegmentsToKeep = 0;
+      var pathSegmentsToKeep = 1; // remote-work-management를 유지
 
       var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      var basePath = l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/');
+      var remainingPath = l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/');
+      
+      if (remainingPath && remainingPath !== 'index.html') {
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          basePath + '/?/' + remainingPath.replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+      } else {
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          basePath + '/'
+        );
+      }
     </script>
   </head>
   <body>
+    <p>리다이렉트 중...</p>
   </body>
 </html>

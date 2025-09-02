@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import LoginPage from './pages/LoginPage';
@@ -16,6 +16,19 @@ const AppContent = () => {
   
   const { user, loading } = useAuth();
   console.log('AppContent: Auth state:', { user, loading });
+
+  // GitHub Pages 라우팅 처리
+  useEffect(() => {
+    const path = window.location.pathname;
+    console.log('AppContent: Initial path:', path);
+    
+    // GitHub Pages에서 ?/ 경로 처리
+    if (path.includes('/?/')) {
+      const newPath = path.split('/?/')[1].replace(/~and~/g, '&');
+      console.log('AppContent: Redirecting to:', newPath);
+      window.history.replaceState(null, null, newPath);
+    }
+  }, []);
 
   if (loading) {
     console.log('AppContent: Showing loading...');
