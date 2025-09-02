@@ -194,6 +194,8 @@ const WorkTimeTracker = () => {
         return;
       }
 
+      console.log('오늘 기록 조회:', { today, userCode });
+
       const { data: logs, error } = await supabase
         .from('work_logs')
         .select('*')
@@ -207,7 +209,11 @@ const WorkTimeTracker = () => {
       }
 
       if (logs) {
+        console.log('오늘 기록 발견:', logs);
         setTodayLog(logs);
+      } else {
+        console.log('오늘 기록 없음 - 새로운 날짜');
+        setTodayLog(null);
       }
     } catch (error) {
       console.error('오늘 기록 조회 실패:', error);
@@ -313,11 +319,13 @@ const WorkTimeTracker = () => {
       // 근무 시간 계산 (정확한 계산)
       const startTime = moment(workLog.start_time);
       const endTime = moment(now);
-      const totalHours = endTime.diff(startTime, 'hours', true);
+      const totalMinutes = endTime.diff(startTime, 'minutes', true);
+      const totalHours = totalMinutes / 60;
 
       console.log('시간 계산:', {
         startTime: startTime.format('YYYY-MM-DD HH:mm:ss'),
         endTime: endTime.format('YYYY-MM-DD HH:mm:ss'),
+        totalMinutes,
         totalHours
       });
 
@@ -406,6 +414,18 @@ const WorkTimeTracker = () => {
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditForm({ start_time: '', end_time: '' });
+  };
+
+  // 실시간 근무 시간 계산
+  const getCurrentWorkHours = () => {
+    if (!todayLog || !todayLog.start_time) return null;
+    
+    const startTime = moment(todayLog.start_time);
+    const endTime = todayLog.end_time ? moment(todayLog.end_time) : moment();
+    const totalMinutes = endTime.diff(startTime, 'minutes', true);
+    const totalHours = totalMinutes / 60;
+    
+    return totalHours;
   };
 
   const getWorkStatus = () => {
@@ -590,7 +610,12 @@ const WorkTimeTracker = () => {
               <LogItem>
                 <LogLabel>총 근무 시간</LogLabel>
                 <LogValue>
-                  {todayLog.total_hours ? `${Math.abs(todayLog.total_hours).toFixed(2)}시간` : '-'}
+                  {(() => {
+                    const currentHours = getCurrentWorkHours();
+                    if (currentHours === null) return '-';
+                    if (currentHours < 0.01) return '1분 미만';
+                    return `${Math.abs(currentHours).toFixed(2)}시간`;
+                  })()}
                 </LogValue>
               </LogItem>
             </LogGrid>
