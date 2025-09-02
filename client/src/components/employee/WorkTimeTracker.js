@@ -177,6 +177,11 @@ const WorkTimeTracker = () => {
   const [todayLog, setTodayLog] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    start_time: '',
+    end_time: ''
+  });
 
   const fetchTodayLog = useCallback(async () => {
     try {
@@ -230,7 +235,7 @@ const WorkTimeTracker = () => {
       const now = moment().format('YYYY-MM-DD HH:mm:ss');
       const userCode = user?.employee?.code;
 
-      // 오늘 이미 출근 기록이 있는지 확인
+      // 오늘 기록이 있는지 확인
       const { data: existingLog } = await supabase
         .from('work_logs')
         .select('*')
@@ -239,22 +244,30 @@ const WorkTimeTracker = () => {
         .single();
 
       if (existingLog) {
-        setMessage('오늘 이미 출근 기록이 있습니다.');
-        return;
-      }
+        // 기존 기록이 있으면 출근 시간만 업데이트
+        const { error } = await supabase
+          .from('work_logs')
+          .update({ start_time: now })
+          .eq('id', existingLog.id);
 
-      // 새로운 출근 기록 생성
-      const { error } = await supabase
-        .from('work_logs')
-        .insert([{
-          employee_code: userCode,
-          date: today,
-          start_time: now
-        }]);
+        if (error) {
+          setMessage('출근 기록 업데이트에 실패했습니다.');
+          return;
+        }
+      } else {
+        // 새로운 출근 기록 생성
+        const { error } = await supabase
+          .from('work_logs')
+          .insert([{
+            employee_code: userCode,
+            date: today,
+            start_time: now
+          }]);
 
-      if (error) {
-        setMessage('출근 기록에 실패했습니다.');
-        return;
+        if (error) {
+          setMessage('출근 기록에 실패했습니다.');
+          return;
+        }
       }
 
       setMessage('출근이 기록되었습니다.');
@@ -288,17 +301,12 @@ const WorkTimeTracker = () => {
         return;
       }
 
-      if (workLog.end_time) {
-        setMessage('이미 퇴근 기록이 있습니다.');
-        return;
-      }
-
-      // 근무 시간 계산
+      // 근무 시간 계산 (정확한 계산)
       const startTime = moment(workLog.start_time);
       const endTime = moment(now);
       const totalHours = endTime.diff(startTime, 'hours', true);
 
-      // 퇴근 기록 업데이트
+      // 퇴근 기록 업데이트 (기존 퇴근 시간이 있어도 덮어쓰기)
       const { error: updateError } = await supabase
         .from('work_logs')
         .update({
@@ -319,6 +327,68 @@ const WorkTimeTracker = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditWorkLog = () => {
+    if (todayLog) {
+      setEditForm({
+        start_time: todayLog.start_time ? moment(todayLog.start_time).format('YYYY-MM-DDTHH:mm') : '',
+        end_time: todayLog.end_time ? moment(todayLog.end_time).format('YYYY-MM-DDTHH:mm') : ''
+      });
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const userCode = user?.employee?.code;
+      const today = moment().format('YYYY-MM-DD');
+      
+      // 시간 형식 변환
+      const startTime = editForm.start_time ? moment(editForm.start_time).format('YYYY-MM-DD HH:mm:ss') : null;
+      const endTime = editForm.end_time ? moment(editForm.end_time).format('YYYY-MM-DD HH:mm:ss') : null;
+      
+      // 근무 시간 계산
+      let totalHours = null;
+      if (startTime && endTime) {
+        const start = moment(startTime);
+        const end = moment(endTime);
+        totalHours = end.diff(start, 'hours', true);
+      }
+
+      const updateData = {
+        start_time: startTime,
+        end_time: endTime,
+        total_hours: totalHours
+      };
+
+      const { error } = await supabase
+        .from('work_logs')
+        .update(updateData)
+        .eq('employee_code', userCode)
+        .eq('date', today);
+
+      if (error) {
+        setMessage('근무 기록 수정에 실패했습니다.');
+        return;
+      }
+
+      setMessage('근무 기록이 수정되었습니다.');
+      setIsEditing(false);
+      fetchTodayLog();
+    } catch (error) {
+      setMessage('근무 기록 수정에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditForm({ start_time: '', end_time: '' });
   };
 
   const getWorkStatus = () => {
@@ -380,14 +450,14 @@ const WorkTimeTracker = () => {
           <Button
             className="start"
             onClick={handleStartWork}
-            disabled={loading || workStatus !== 'not-started'}
+            disabled={loading}
           >
             {loading ? '처리 중...' : '출근'}
           </Button>
           <Button
             className="end"
             onClick={handleEndWork}
-            disabled={loading || workStatus !== 'working'}
+            disabled={loading}
           >
             {loading ? '처리 중...' : '퇴근'}
           </Button>
@@ -401,23 +471,113 @@ const WorkTimeTracker = () => {
 
       {todayLog && (
         <WorkLogCard>
-          <LogTitle>오늘의 근무 기록</LogTitle>
-          <LogGrid>
-            <LogItem>
-              <LogLabel>출근 시간</LogLabel>
-              <LogValue>{todayLog.start_time || '-'}</LogValue>
-            </LogItem>
-            <LogItem>
-              <LogLabel>퇴근 시간</LogLabel>
-              <LogValue>{todayLog.end_time || '-'}</LogValue>
-            </LogItem>
-            <LogItem>
-              <LogLabel>총 근무 시간</LogLabel>
-              <LogValue>
-                {todayLog.total_hours ? `${todayLog.total_hours.toFixed(2)}시간` : '-'}
-              </LogValue>
-            </LogItem>
-          </LogGrid>
+          <LogTitle>
+            오늘의 근무 기록
+            <Button
+              onClick={handleEditWorkLog}
+              disabled={loading}
+              style={{
+                marginLeft: '1rem',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              수정
+            </Button>
+          </LogTitle>
+          
+          {isEditing ? (
+            <div>
+              <LogGrid>
+                <LogItem>
+                  <LogLabel>출근 시간</LogLabel>
+                  <input
+                    type="datetime-local"
+                    value={editForm.start_time}
+                    onChange={(e) => setEditForm({...editForm, start_time: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '5px',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </LogItem>
+                <LogItem>
+                  <LogLabel>퇴근 시간</LogLabel>
+                  <input
+                    type="datetime-local"
+                    value={editForm.end_time}
+                    onChange={(e) => setEditForm({...editForm, end_time: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '5px',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </LogItem>
+              </LogGrid>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'center' }}>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={loading}
+                  style={{
+                    background: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {loading ? '저장 중...' : '저장'}
+                </Button>
+                <Button
+                  onClick={handleCancelEdit}
+                  disabled={loading}
+                  style={{
+                    background: '#95a5a6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  취소
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <LogGrid>
+              <LogItem>
+                <LogLabel>출근 시간</LogLabel>
+                <LogValue>
+                  {todayLog.start_time ? moment(todayLog.start_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                </LogValue>
+              </LogItem>
+              <LogItem>
+                <LogLabel>퇴근 시간</LogLabel>
+                <LogValue>
+                  {todayLog.end_time ? moment(todayLog.end_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                </LogValue>
+              </LogItem>
+              <LogItem>
+                <LogLabel>총 근무 시간</LogLabel>
+                <LogValue>
+                  {todayLog.total_hours ? `${todayLog.total_hours.toFixed(2)}시간` : '-'}
+                </LogValue>
+              </LogItem>
+            </LogGrid>
+          )}
         </WorkLogCard>
       )}
     </Container>
